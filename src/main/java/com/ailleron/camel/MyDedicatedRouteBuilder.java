@@ -5,6 +5,7 @@
  */
 package com.ailleron.camel;
 
+import org.apache.camel.ExchangePattern;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.spring.SpringRouteBuilder;
 import org.springframework.stereotype.Component;
@@ -26,13 +27,14 @@ public class MyDedicatedRouteBuilder extends SpringRouteBuilder {
                 .to("bean:myProcessor?method=myProcess")
                 .multicast()
                    .to("http://tojestzlyurl/")
-                   .to("direct:callDate")
+                   .inOnly("seda:callDate")
                 .end()
                 .log(LoggingLevel.ERROR, "logger.error", "panic! ${body}");
         
-                from("direct:callDate")
+                from("seda:callDate")
                 .removeHeaders("*")
-                .to("http://date.jsontest.com/");
+                .to("http://date.jsontest.com/")
+                        .log("afterdate");
                         
                 
     }

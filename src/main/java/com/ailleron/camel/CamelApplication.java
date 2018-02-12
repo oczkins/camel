@@ -1,5 +1,6 @@
 package com.ailleron.camel;
 
+import org.apache.camel.CamelContext;
 import org.apache.camel.spring.boot.CamelSpringBootApplicationController;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -12,6 +13,7 @@ public class CamelApplication {
         ConfigurableApplicationContext context = SpringApplication.run(CamelApplication.class, args);
         CamelSpringBootApplicationController controller = 
                 context.getBean(CamelSpringBootApplicationController.class);
+        
         controller.run();
     }
 
