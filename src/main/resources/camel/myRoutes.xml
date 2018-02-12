@@ -2,4 +2,9 @@
         xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd 
                             http://camel.apache.org/schema/spring http://camel.apache.org/schema/spring/camel-spring.xsd">
 
- </routes>
+    <route>
+        <from uri="jetty:http://0.0.0.0:8181/routeStart3"/>
+        <to uri="direct:callJsonTest2"/>
+        <to uri="log:fromXML?showAll=true"/>
+    </route>
+</routes>
