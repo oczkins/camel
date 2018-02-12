@@ -27,11 +27,12 @@ public class MyDedicatedRouteBuilder extends SpringRouteBuilder {
                 .to("bean:myProcessor?method=myProcess")
                 .multicast()
                    .to("http://tojestzlyurl/")
-                   .inOnly("seda:callDate")
+                   .inOnly("activemq:callDate")
                 .end()
                 .log(LoggingLevel.ERROR, "logger.error", "panic! ${body}");
         
-                from("seda:callDate")
+                from("activemq:callDate")
+                .to("log:loggerActivemq?showAll=true")        
                 .removeHeaders("*")
                 .to("http://date.jsontest.com/")
                         .log("afterdate");
