@@ -26,16 +26,13 @@ public class CamelConfiguration {
             @Override
             public void configure() throws Exception {
                 
-                from("timer:start")
-                        
-                        .setBody(simple("{\"requestDate\":\"${date:now:yyyyMMdd}\"}"))
-                        .to("bean:myProcessor?method=myProcess")
-                        .to("http://tojestzlyurl/")
-                        .removeHeaders("*")
-                        .to("http://date.jsontest.com/")
-                        .log(LoggingLevel.ERROR, "logger.error", "panic! ${body}");
+                from("jetty:http://0.0.0.0:8181/routeStart")
+                        .to("log:fromJetty?showAll=true")
+                        .to("direct:callJsonTest")
+                        .setHeader(Exchange.HTTP_RESPONSE_CODE, constant("404"));
                 
-                
+                from("jetty:http://0.0.0.0:8181/routeStart2")
+                        .to("direct:callJsonTest");
                 
             }
         };
