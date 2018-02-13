@@ -10,9 +10,11 @@ import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.builder.xml.Namespaces;
+import org.apache.camel.model.dataformat.CsvDataFormat;
 import org.apache.camel.model.dataformat.JsonDataFormat;
 import org.apache.camel.model.dataformat.JsonLibrary;
 import org.apache.camel.model.rest.RestBindingMode;
+import org.apache.camel.processor.aggregate.AggregationStrategy;
 import org.apache.camel.spring.SpringRouteBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -40,6 +42,29 @@ public class CamelConfiguration {
             @Override
             public void configure() throws Exception {
 
+                from("file://D://input")
+                        .split()
+                            .xpath("//order")
+                            .to("log:order?showAll=true&showStreams=true")
+                        .end()
+                        .to("log:fromDir?showAll=true&showStreams=true");
+
+                from("file://D://inputcsv")
+                        .split()
+                            .tokenize("\n")
+                            .to("log:fromDir?showAll=true&showStreams=true")
+                            .aggregate(new MyAggregate())
+                                .constant("1")
+                                .completionSize(3)
+                                .unmarshal(new CsvDataFormat("|"))
+                                .to("log:csvOrder?showAll=true&showStreams=true")
+                                .log("name: ${body[0][0]}")
+                            .end()
+                            
+                        .end();
+                            
+                
+                
                  Namespaces ns = new Namespaces("webx", "http://www.webserviceX.NET/")
                         .add("xsd", "http://www.w3.org/2001/XMLSchema");
    
@@ -102,4 +127,20 @@ public class CamelConfiguration {
             }
         };
     }
+
+    private static class MyAggregate implements AggregationStrategy{
+
+        @Override
+        public Exchange aggregate(Exchange oldExchange, Exchange newExchange) {
+            if(oldExchange == null){
+                return newExchange;
+            }
+            String body1 = oldExchange.getIn().getBody(String.class);
+            String body2 = newExchange.getIn().getBody(String.class);
+            oldExchange.getIn().setBody(body1+body2);
+            return oldExchange;
+        }
+        
+    }
+    
 }
