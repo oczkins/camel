@@ -108,17 +108,18 @@ public class CamelConfiguration {
                         .to("log:fromDir?showAll=true&showStreams=true");
 
                 from("file://D://inputcsv")
+                        .routeId("splitAndAggregate")
                         .split()
-                        .tokenize("\n")
-                        .to("log:fromDir?showAll=true&showStreams=true")
-                        .aggregate(new MyAggregate())
-                        .constant("1")
-                        .completionSize(3)
-                        .completionTimeout(1000)
-                        .unmarshal(new CsvDataFormat("|"))
-                        .to("log:csvOrder?showAll=true&showStreams=true")
-                        .log("name: ${body[0][0]}")
-                        .end()
+                            .tokenize("\n")
+                            .to("log:fromDir?showAll=true&showStreams=true")
+                            .aggregate(new MyAggregate())
+                                .constant("1")
+                                .completionSize(3)
+                                .completionTimeout(1000)
+                                .unmarshal(new CsvDataFormat("|"))
+                                .to("log:csvOrder?showAll=true&showStreams=true")
+                                .log("name: ${body[0][0]}")
+                            .end()
                         .end();
                 
                 from("file://D://inputcsv2")
