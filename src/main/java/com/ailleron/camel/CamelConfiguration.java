@@ -40,6 +40,10 @@ public class CamelConfiguration {
             public void configure() throws Exception {
 
                 from("jetty:http://0.0.0.0:8181/callSoap")
+                        .streamCaching()
+                        .removeHeaders("*")
+                        .setHeader("lengthValue").constant("10")
+                        .to("velocity:vm/lengthRequest.vm")
                         .to("cxf:http://www.webservicex.net/length.asmx?wsdlURL=wsdl/service.wsdl&dataFormat=MESSAGE&portName=lengthUnitSoap")
                         .to("log:afterSoap?showAll=true&showStreams=true");
                 

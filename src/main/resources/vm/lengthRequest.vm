@@ -1,0 +1,10 @@
+<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:web="http://www.webserviceX.NET/">
+   <soapenv:Header/>
+   <soapenv:Body>
+      <web:ChangeLengthUnit>
+         <web:LengthValue>${headers.lengthValue}</web:LengthValue>
+         <web:fromLengthUnit>Centimeters</web:fromLengthUnit>
+         <web:toLengthUnit>Inches</web:toLengthUnit>
+      </web:ChangeLengthUnit>
+   </soapenv:Body>
+</soapenv:Envelope>
