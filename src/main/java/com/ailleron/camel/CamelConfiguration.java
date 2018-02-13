@@ -15,6 +15,7 @@ import org.apache.camel.model.dataformat.JsonDataFormat;
 import org.apache.camel.model.dataformat.JsonLibrary;
 import org.apache.camel.model.rest.RestBindingMode;
 import org.apache.camel.processor.aggregate.AggregationStrategy;
+import org.apache.camel.processor.idempotent.MemoryIdempotentRepository;
 import org.apache.camel.spring.SpringRouteBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -42,46 +43,72 @@ public class CamelConfiguration {
             @Override
             public void configure() throws Exception {
 
+                
+                from("jetty:http://0.0.0.0:8181/error")
+                        .to("direct:doSomething");
+      
+                from("direct:doSomething")
+                        .throwException(new RuntimeException());
+                
+                
+                
+                MemoryIdempotentRepository repo = new MemoryIdempotentRepository();
+                
                 from("file://D://input")
                         .split()
-                            .xpath("//order")
-                            .to("log:order?showAll=true&showStreams=true")
+                        .xpath("//order")
+                        .to("log:order?showAll=true&showStreams=true")
                         .end()
                         .to("log:fromDir?showAll=true&showStreams=true");
 
                 from("file://D://inputcsv")
                         .split()
-                            .tokenize("\n")
-                            .to("log:fromDir?showAll=true&showStreams=true")
-                            .aggregate(new MyAggregate())
-                                .constant("1")
-                                .completionSize(3)
-                                .unmarshal(new CsvDataFormat("|"))
-                                .to("log:csvOrder?showAll=true&showStreams=true")
-                                .log("name: ${body[0][0]}")
-                            .end()
-                            
+                        .tokenize("\n")
+                        .to("log:fromDir?showAll=true&showStreams=true")
+                        .aggregate(new MyAggregate())
+                        .constant("1")
+                        .completionSize(3)
+                        .completionTimeout(1000)
+                        .unmarshal(new CsvDataFormat("|"))
+                        .to("log:csvOrder?showAll=true&showStreams=true")
+                        .log("name: ${body[0][0]}")
+                        .end()
                         .end();
-                            
                 
-                
-                 Namespaces ns = new Namespaces("webx", "http://www.webserviceX.NET/")
+                from("file://D://inputcsv2")
+                        .split()
+                            .tokenize("\n")
+                            .unmarshal(new CsvDataFormat("|"))
+                            .idempotentConsumer(simple("${body[0][0]}"),repo)
+                                .skipDuplicate(false)
+//                                .filter(exchangeProperty(Exchange.DUPLICATE_MESSAGE).not())
+                                .choice()
+                                    .when(exchangeProperty(Exchange.DUPLICATE_MESSAGE))
+                                        .throwException(new RuntimeException("duplikat"))
+                                    .otherwise()
+                                        .to("log:csvOrder?showAll=true&showStreams=true")
+                                        .log("name: ${body[0][0]}")
+                                .endChoice()
+                           .end()
+                           
+                        .end();
+
+                Namespaces ns = new Namespaces("webx", "http://www.webserviceX.NET/")
                         .add("xsd", "http://www.w3.org/2001/XMLSchema");
-   
-                
+
                 from("jetty:http://0.0.0.0:8181/callSoap")
                         .streamCaching()
                         .removeHeaders("*")
                         .setHeader("lengthValue").constant("1")
                         .to("velocity:vm/lengthRequest.vm")
                         .to("cxf:http://www.webservicex.net/length.asmx?wsdlURL=wsdl/service.wsdl&dataFormat=MESSAGE&portName=lengthUnitSoap")
-                        .setHeader("soapResult",ns.xpath("//webx:ChangeLengthUnitResult",Integer.class))
+                        .setHeader("soapResult", ns.xpath("//webx:ChangeLengthUnitResult", Integer.class))
                         .filter()
-                            .simple("${headers.soapResult} > 1")
-                            .to("log:afterSoap?showAll=true&showStreams=true")
-                            .to("xslt:xslt/transform.xml")
-                            .to("log:afterXSLT?showAll=true&showStreams=true");
-                
+                        .simple("${headers.soapResult} > 1")
+                        .to("log:afterSoap?showAll=true&showStreams=true")
+                        .to("xslt:xslt/transform.xml")
+                        .to("log:afterXSLT?showAll=true&showStreams=true");
+
                 from("jetty:http://0.0.0.0:8181/routeStart")
                         .to("log:fromJetty?showAll=true")
                         .to("direct:callJsonTest")
@@ -128,19 +155,19 @@ public class CamelConfiguration {
         };
     }
 
-    private static class MyAggregate implements AggregationStrategy{
+    private static class MyAggregate implements AggregationStrategy {
 
         @Override
         public Exchange aggregate(Exchange oldExchange, Exchange newExchange) {
-            if(oldExchange == null){
+            if (oldExchange == null) {
                 return newExchange;
             }
             String body1 = oldExchange.getIn().getBody(String.class);
             String body2 = newExchange.getIn().getBody(String.class);
-            oldExchange.getIn().setBody(body1+body2);
+            oldExchange.getIn().setBody(body1 + body2);
             return oldExchange;
         }
-        
+
     }
-    
+
 }
