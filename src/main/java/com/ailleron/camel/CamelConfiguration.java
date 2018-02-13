@@ -6,6 +6,7 @@
 package com.ailleron.camel;
 
 import java.io.IOException;
+import javax.jms.ConnectionFactory;
 import javax.management.RuntimeErrorException;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.camel.Exchange;
@@ -19,8 +20,11 @@ import org.apache.camel.model.rest.RestBindingMode;
 import org.apache.camel.processor.aggregate.AggregationStrategy;
 import org.apache.camel.processor.idempotent.MemoryIdempotentRepository;
 import org.apache.camel.spring.SpringRouteBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.jms.connection.JmsTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
 
 /**
  *
@@ -40,11 +44,34 @@ public class CamelConfiguration {
     }
 
     @Bean
+    public PlatformTransactionManager transactionManager(@Autowired ConnectionFactory connectionFactory){
+        return new JmsTransactionManager(connectionFactory);
+    }
+    
+    @Bean
     public RouteBuilder routes() {
         return new SpringRouteBuilder() {
             @Override
             public void configure() throws Exception {
                
+                from("jetty:http://0.0.0.0:8181/transaction")
+                        .transacted()
+                        .inOnly("activemq:queue1")
+                        .inOnly("activemq:queue2")
+                        .throwException(new RuntimeException())
+                        ;
+                
+                from("activemq:queue1")
+                        .log("queue1 processing");
+
+                from("activemq:queue2")
+                        .log("queue2 processing");
+                        
+                        
+                
+                
+                
+                
                 from("activemq:doSomethigRetry")
                         .to("direct:doSomething");
                 
