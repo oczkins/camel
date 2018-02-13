@@ -9,6 +9,8 @@ import org.apache.activemq.broker.BrokerService;
 import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.model.dataformat.JsonDataFormat;
+import org.apache.camel.model.dataformat.JsonLibrary;
 import org.apache.camel.model.rest.RestBindingMode;
 import org.apache.camel.spring.SpringRouteBuilder;
 import org.springframework.context.annotation.Bean;
@@ -43,6 +45,7 @@ public class CamelConfiguration {
 
                 from("jetty:http://0.0.0.0:8181/routeStart2")
                         .to("direct:callJsonTest");
+                
                 restConfiguration("jetty").host("0.0.0.0").port(18181)
                         .dataFormatProperty("prettyPrint", "true").
                         apiContextPath("/api-doc").
@@ -52,7 +55,12 @@ public class CamelConfiguration {
 ;
 
                 from("direct:getOrders").to("log:getOrders");
-                from("direct:addOrder").to("log:addOrder");
+           
+                from("direct:addOrder")
+                        .to("log:addOrderString?showAll=true&showStreams=true")
+                        .unmarshal(new JsonDataFormat(JsonLibrary.Jackson))
+                        .to("log:addOrderMap?showAll=true");
+                
                 from("direct:getOrderById").to("log:getOrderById?showAll=true");
 
                 rest("/api")
