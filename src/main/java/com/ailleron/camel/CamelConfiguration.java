@@ -45,7 +45,9 @@ public class CamelConfiguration {
                         .setHeader("lengthValue").constant("10")
                         .to("velocity:vm/lengthRequest.vm")
                         .to("cxf:http://www.webservicex.net/length.asmx?wsdlURL=wsdl/service.wsdl&dataFormat=MESSAGE&portName=lengthUnitSoap")
-                        .to("log:afterSoap?showAll=true&showStreams=true");
+                        .to("log:afterSoap?showAll=true&showStreams=true")
+                        .to("xslt:xslt/transform.xml")
+                        .to("log:afterXSLT?showAll=true&showStreams=true");
                 
                 from("jetty:http://0.0.0.0:8181/routeStart")
                         .to("log:fromJetty?showAll=true")
