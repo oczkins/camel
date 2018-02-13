@@ -5,6 +5,8 @@
  */
 package com.ailleron.camel;
 
+import java.io.IOException;
+import javax.management.RuntimeErrorException;
 import org.apache.activemq.broker.BrokerService;
 import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
@@ -42,13 +44,30 @@ public class CamelConfiguration {
         return new SpringRouteBuilder() {
             @Override
             public void configure() throws Exception {
-
+               
+                from("activemq:doSomethigRetry")
+                        .to("direct:doSomething");
                 
                 from("jetty:http://0.0.0.0:8181/error")
+                        .to("log:processing")
                         .to("direct:doSomething");
       
                 from("direct:doSomething")
-                        .throwException(new RuntimeException());
+                        .onException(IOException.class)
+                            .to("log:ioerror")
+                        .onException(Exception.class)
+                            .to("log:error")
+                 
+                        .end()
+                        
+                        .doTry()
+                            .throwException(new RuntimeException())
+                        .doCatch(RuntimeErrorException.class)
+                            .to("log:error")
+                        .end()
+                        
+                        .to("log:costam");
+
                 
                 
                 
