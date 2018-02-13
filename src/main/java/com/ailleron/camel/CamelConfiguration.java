@@ -24,20 +24,25 @@ import org.springframework.context.annotation.Configuration;
 public class CamelConfiguration {
 
     @Bean(initMethod = "start", destroyMethod = "stop")
-    public BrokerService broker() throws Exception{
+    public BrokerService broker() throws Exception {
         BrokerService brokerService = new BrokerService();
-       
+
         brokerService.setPersistent(true);
         brokerService.addConnector("vm://localhost");
         brokerService.start();
         return brokerService;
     }
+
     @Bean
     public RouteBuilder routes() {
         return new SpringRouteBuilder() {
             @Override
             public void configure() throws Exception {
 
+                from("jetty:http://0.0.0.0:8181/callSoap")
+                        .to("cxf:http://www.webservicex.net/length.asmx?wsdlURL=wsdl/service.wsdl&dataFormat=MESSAGE&portName=lengthUnitSoap")
+                        .to("log:afterSoap?showAll=true&showStreams=true");
+                
                 from("jetty:http://0.0.0.0:8181/routeStart")
                         .to("log:fromJetty?showAll=true")
                         .to("direct:callJsonTest")
@@ -45,42 +50,40 @@ public class CamelConfiguration {
 
                 from("jetty:http://0.0.0.0:8181/routeStart2")
                         .to("direct:callJsonTest");
-                
+
                 restConfiguration("jetty").host("0.0.0.0").port(18181)
                         .dataFormatProperty("prettyPrint", "true").
                         apiContextPath("/api-doc").
                         apiProperty("api.title", "Orders API").
                         apiProperty("api.version", "1.0.0").
                         apiProperty("cors", "true");
-;
+                ;
 
                 from("direct:getOrders").to("log:getOrders");
 
                 from("direct:addOrders")
                         .split()
-                            .jsonpath("$..description")
-                            .to("log:afterSplit?showAll=true");
+                        .jsonpath("$..description")
+                        .to("log:afterSplit?showAll=true");
 
-                
                 from("direct:addOrder")
-                        .setHeader("quantity").jsonpath("$.quantity",Integer.class)
+                        .setHeader("quantity").jsonpath("$.quantity", Integer.class)
                         .filter().simple("${in.header.quantity} > 0")
-                            .to("log:addOrderString?showAll=true&showStreams=true")
-                            .unmarshal(new JsonDataFormat(JsonLibrary.Jackson))
-                            .to("log:addOrderMap?showAll=true")
-                            .setHeader("orderName", simple("${body['name']}"))
-                            .to("log:addOrderMapHeader?showAll=true")
-                            .to("velocity:vm/response.vm")
+                        .to("log:addOrderString?showAll=true&showStreams=true")
+                        .unmarshal(new JsonDataFormat(JsonLibrary.Jackson))
+                        .to("log:addOrderMap?showAll=true")
+                        .setHeader("orderName", simple("${body['name']}"))
+                        .to("log:addOrderMapHeader?showAll=true")
+                        .to("velocity:vm/response.vm")
                         .end()
-                            .to("log:addOrderMapVelocity?showAll=true")
-                        ;
-                
+                        .to("log:addOrderMapVelocity?showAll=true");
+
                 from("direct:getOrderById").to("log:getOrderById?showAll=true");
 
                 rest("/api")
                         .get("/orders").to("direct:getOrders")
                         .post("/orders").to("direct:addOrders")
-                        .get("/orders/{id}").to("direct:getOrderById") ;
+                        .get("/orders/{id}").to("direct:getOrderById");
 
             }
         };
