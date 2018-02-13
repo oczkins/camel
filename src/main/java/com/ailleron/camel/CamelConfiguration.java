@@ -9,6 +9,7 @@ import org.apache.activemq.broker.BrokerService;
 import org.apache.camel.Exchange;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.builder.RouteBuilder;
+import org.apache.camel.builder.xml.Namespaces;
 import org.apache.camel.model.dataformat.JsonDataFormat;
 import org.apache.camel.model.dataformat.JsonLibrary;
 import org.apache.camel.model.rest.RestBindingMode;
@@ -39,15 +40,22 @@ public class CamelConfiguration {
             @Override
             public void configure() throws Exception {
 
+                 Namespaces ns = new Namespaces("webx", "http://www.webserviceX.NET/")
+                        .add("xsd", "http://www.w3.org/2001/XMLSchema");
+   
+                
                 from("jetty:http://0.0.0.0:8181/callSoap")
                         .streamCaching()
                         .removeHeaders("*")
-                        .setHeader("lengthValue").constant("10")
+                        .setHeader("lengthValue").constant("1")
                         .to("velocity:vm/lengthRequest.vm")
                         .to("cxf:http://www.webservicex.net/length.asmx?wsdlURL=wsdl/service.wsdl&dataFormat=MESSAGE&portName=lengthUnitSoap")
-                        .to("log:afterSoap?showAll=true&showStreams=true")
-                        .to("xslt:xslt/transform.xml")
-                        .to("log:afterXSLT?showAll=true&showStreams=true");
+                        .setHeader("soapResult",ns.xpath("//webx:ChangeLengthUnitResult",Integer.class))
+                        .filter()
+                            .simple("${headers.soapResult} > 1")
+                            .to("log:afterSoap?showAll=true&showStreams=true")
+                            .to("xslt:xslt/transform.xml")
+                            .to("log:afterXSLT?showAll=true&showStreams=true");
                 
                 from("jetty:http://0.0.0.0:8181/routeStart")
                         .to("log:fromJetty?showAll=true")
