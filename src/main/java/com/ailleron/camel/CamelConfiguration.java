@@ -57,9 +57,17 @@ public class CamelConfiguration {
                 from("direct:getOrders").to("log:getOrders");
            
                 from("direct:addOrder")
-                        .to("log:addOrderString?showAll=true&showStreams=true")
-                        .unmarshal(new JsonDataFormat(JsonLibrary.Jackson))
-                        .to("log:addOrderMap?showAll=true");
+                        .setHeader("quantity").jsonpath("$.quantity",Integer.class)
+                        .filter().simple("${in.header.quantity} > 0")
+                            .to("log:addOrderString?showAll=true&showStreams=true")
+                            .unmarshal(new JsonDataFormat(JsonLibrary.Jackson))
+                            .to("log:addOrderMap?showAll=true")
+                            .setHeader("orderName", simple("${body['name']}"))
+                            .to("log:addOrderMapHeader?showAll=true")
+                            .to("velocity:vm/response.vm")
+                        .end()
+                            .to("log:addOrderMapVelocity?showAll=true")
+                        ;
                 
                 from("direct:getOrderById").to("log:getOrderById?showAll=true");
 
