@@ -21,15 +21,15 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class CamelConfiguration {
 
-//    @Bean(initMethod = "start", destroyMethod = "stop")
-//    public BrokerService broker() throws Exception{
-//        BrokerService brokerService = new BrokerService();
-//       
-//        brokerService.setPersistent(true);
-//        brokerService.addConnector("vm://localhost");
-//        brokerService.start();
-//        return brokerService;
-//    }
+    @Bean(initMethod = "start", destroyMethod = "stop")
+    public BrokerService broker() throws Exception{
+        BrokerService brokerService = new BrokerService();
+       
+        brokerService.setPersistent(true);
+        brokerService.addConnector("vm://localhost");
+        brokerService.start();
+        return brokerService;
+    }
     @Bean
     public RouteBuilder routes() {
         return new SpringRouteBuilder() {
