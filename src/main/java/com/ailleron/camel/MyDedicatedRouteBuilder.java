@@ -5,6 +5,7 @@
  */
 package com.ailleron.camel;
 
+import org.apache.camel.Exchange;
 import org.apache.camel.ExchangePattern;
 import org.apache.camel.LoggingLevel;
 import org.apache.camel.spring.SpringRouteBuilder;
@@ -30,10 +31,11 @@ public class MyDedicatedRouteBuilder extends SpringRouteBuilder {
                    .inOnly("activemq:callDate")
                 .end()
                 .log(LoggingLevel.ERROR, "logger.error", "panic! ${body}");
-        
+                
                 from("activemq:callDate")
                 .to("log:loggerActivemq?showAll=true")        
                 .removeHeaders("*")
+                .setHeader(Exchange.HTTP_METHOD,constant("GET"))
                 .to("http://date.jsontest.com/")
                         .log("afterdate");
                         

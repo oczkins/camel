@@ -55,7 +55,13 @@ public class CamelConfiguration {
 ;
 
                 from("direct:getOrders").to("log:getOrders");
-           
+
+                from("direct:addOrders")
+                        .split()
+                            .jsonpath("$..description")
+                            .to("log:afterSplit?showAll=true");
+
+                
                 from("direct:addOrder")
                         .setHeader("quantity").jsonpath("$.quantity",Integer.class)
                         .filter().simple("${in.header.quantity} > 0")
@@ -73,7 +79,7 @@ public class CamelConfiguration {
 
                 rest("/api")
                         .get("/orders").to("direct:getOrders")
-                        .post("/orders").to("direct:addOrder")
+                        .post("/orders").to("direct:addOrders")
                         .get("/orders/{id}").to("direct:getOrderById") ;
 
             }
